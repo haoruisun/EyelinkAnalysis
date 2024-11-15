@@ -6,5 +6,6 @@ I am primarily working on the original repository but will keep this replicated 
 
 ## Reading Examples
 1. **Normal Reading**
-
+   ![Normal Page](res/pic/r1_R_page3.png)
 2. **Mindless Reading**
+   ![Mind-Wandering Page](res/pic/r4_R_page1.png)
