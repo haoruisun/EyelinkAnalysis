@@ -1,0 +1,276 @@
+time,text
+72052,DISPLAY_COORDS 0 0 1919 1079
+549239,!CAL
+549239,!CAL Calibration points:
+549239,"!CAL -36.8, -51.4 0, 120"
+549240,"!CAL -38.2, -67.0 0, -2395"
+549240,"!CAL -37.5, -34.2 0, 2556"
+549240,"!CAL -76.1, -50.5 -4688, 120"
+549240,"!CAL -1.6, -49.9 4688, 120"
+549240,"!CAL -74.9, -68.9 -4764, -2395"
+549240,"!CAL -1.1, -65.5 4764, -2395"
+549240,"!CAL -74.4, -33.8 -4615, 2556"
+549240,"!CAL -6.9, -58.7 4615, 2556"
+549240,"!CAL 0.0, 0.0 0, 0"
+549240,"!CAL eye check box: (L,R,T,B)"
+549240,"!CAL href cal range: (L,R,T,B)"
+549240,"!CAL Cal coeff:(X=a+bx+cy+dxx+eyy,Y=f+gx+goaly+ixx+jyy)"
+549240,"!CAL Prenormalize: offx, offy = -36.761 -51.377"
+549240,"!CAL Quadrant center: centx, centy ="
+549240,!CAL WARNING: diagonals
+549240,!CAL Corner correction:
+549240,!CAL Gains: cx:698.869 lx:669.506 rx:547.598
+549240,!CAL Gains: cy:651.866 ty:348.294 by:839.496
+549240,"!CAL Resolution (upd) at screen center: X=0.4, Y=0.4"
+549240,!CAL Gain Change Proportion: X: 0.223 Y: 1.410
+549240,!CAL X gain out of range
+549240,"!CAL PCR gain ratio(x,y) = 2.383, 2.156"
+549240,"!CAL CR gain match(x,y) = 1.010, 1.010"
+549240,!CAL Slip rotation correction OFF
+549240,!CAL
+549240,!CAL Calibration points:
+549240,"!CAL -38.4, -50.4 0, 120"
+549240,"!CAL -39.8, -67.8 0, -2395"
+549240,"!CAL -37.8, -35.4 0, 2556"
+549240,"!CAL -74.5, -50.5 -4688, 120"
+549240,"!CAL -3.6, -49.1 4688, 120"
+549240,"!CAL -75.9, -66.4 -4764, -2395"
+549240,"!CAL -2.0, -68.5 4764, -2395"
+549240,"!CAL -74.0, -35.5 -4615, 2556"
+549240,"!CAL -7.6, -57.7 4615, 2556"
+549240,"!CAL 0.0, 0.0 0, 0"
+549240,"!CAL eye check box: (L,R,T,B)"
+549240,"!CAL href cal range: (L,R,T,B)"
+549240,"!CAL Cal coeff:(X=a+bx+cy+dxx+eyy,Y=f+gx+goaly+ixx+jyy)"
+549240,"!CAL Prenormalize: offx, offy = -38.418 -50.424"
+549240,"!CAL Quadrant center: centx, centy ="
+549240,!CAL WARNING: diagonals
+549240,!CAL Corner correction:
+549240,!CAL Gains: cx:1155.593 lx:118.411 rx:1058.526
+549240,!CAL Gains: cy:740.976 ty:437.308 by:1107.806
+549240,"!CAL Resolution (upd) at screen center: X=0.2, Y=0.4"
+549240,!CAL Gain Change Proportion: X: 7.939 Y: 1.533
+549240,!CAL X Nonlinearity Proportion too large
+549240,"!CAL PCR gain ratio(x,y) = 2.389, 2.143"
+549240,"!CAL CR gain match(x,y) = 1.010, 1.010"
+549240,!CAL Slip rotation correction OFF
+549240,!CAL CALIBRATION HV9 LR LEFT GOOD
+549240,!CAL CALIBRATION HV9 LR RIGHT GOOD
+574575,!CAL
+574575,!CAL Calibration points:
+574575,"!CAL -35.7, -53.2 0, 120"
+574575,"!CAL -37.6, -68.1 0, -2395"
+574575,"!CAL -35.5, -34.2 0, 2556"
+574575,"!CAL -74.6, -50.9 -4688, 120"
+574575,"!CAL -0.5, -50.1 4688, 120"
+574575,"!CAL -75.3, -67.4 -4764, -2395"
+574575,"!CAL -2.8, -65.3 4764, -2395"
+574575,"!CAL -72.5, -34.4 -4615, 2556"
+574575,"!CAL -4.9, -41.5 4615, 2556"
+574575,"!CAL 0.0, 0.0 0, 0"
+574575,"!CAL eye check box: (L,R,T,B)"
+574575,"!CAL href cal range: (L,R,T,B)"
+574575,"!CAL Cal coeff:(X=a+bx+cy+dxx+eyy,Y=f+gx+goaly+ixx+jyy)"
+574575,"!CAL Prenormalize: offx, offy = -35.684 -53.169"
+574575,"!CAL Quadrant center: centx, centy ="
+574575,!CAL Corner correction:
+574575,!CAL Gains: cx:211.285 lx:234.958 rx:165.118
+574575,!CAL Gains: cy:63.982 ty:247.510 by:160.251
+574575,"!CAL Resolution (upd) at screen center: X=1.2, Y=4.1"
+574575,!CAL Gain Change Proportion: X: 0.423 Y: 0.545
+574575,!CAL Gain Ratio (Gy/Gx) = 0.303
+574575,!CAL Bad Y/X gain ratio: 0.303
+574575,"!CAL PCR gain ratio(x,y) = 2.326, 2.165"
+574575,"!CAL CR gain match(x,y) = 1.010, 1.010"
+574575,!CAL Slip rotation correction OFF
+574575,!CAL
+574575,!CAL Calibration points:
+574575,"!CAL -37.6, -52.1 0, 120"
+574575,"!CAL -38.6, -70.6 0, -2395"
+574575,"!CAL -37.5, -35.8 0, 2556"
+574575,"!CAL -73.4, -52.6 -4688, 120"
+574575,"!CAL -1.9, -51.4 4688, 120"
+574575,"!CAL -73.9, -70.7 -4764, -2395"
+574575,"!CAL -3.1, -68.1 4764, -2395"
+574575,"!CAL -72.4, -36.1 -4615, 2556"
+574575,"!CAL -6.1, -43.9 4615, 2556"
+574575,"!CAL 0.0, 0.0 0, 0"
+574575,"!CAL eye check box: (L,R,T,B)"
+574575,"!CAL href cal range: (L,R,T,B)"
+574576,"!CAL Cal coeff:(X=a+bx+cy+dxx+eyy,Y=f+gx+goaly+ixx+jyy)"
+574576,"!CAL Prenormalize: offx, offy = -37.626 -52.053"
+574576,"!CAL Quadrant center: centx, centy ="
+574576,!CAL Corner correction:
+574576,!CAL Gains: cx:525.960 lx:136.313 rx:511.680
+574576,!CAL Gains: cy:609.279 ty:385.351 by:803.560
+574576,"!CAL Resolution (upd) at screen center: X=0.5, Y=0.4"
+574576,!CAL Gain Change Proportion: X: 2.754 Y: 1.085
+574576,!CAL X Nonlinearity Proportion too large
+574576,"!CAL PCR gain ratio(x,y) = 2.318, 2.191"
+574576,"!CAL CR gain match(x,y) = 1.010, 1.010"
+574576,!CAL Slip rotation correction OFF
+574597,!CAL CALIBRATION HV9 LR LEFT GOOD
+574597,!CAL CALIBRATION HV9 LR RIGHT GOOD
+594499,!CAL
+594499,!CAL Calibration points:
+594499,"!CAL -36.2, -50.3 0, 120"
+594499,"!CAL -37.5, -66.5 0, -2395"
+594500,"!CAL -35.9, -33.4 0, 2556"
+594500,"!CAL -74.1, -49.0 -4688, 120"
+594500,"!CAL -2.3, -48.2 4688, 120"
+594500,"!CAL -75.0, -65.8 -4764, -2395"
+594500,"!CAL -2.1, -63.0 4764, -2395"
+594500,"!CAL -71.7, -33.1 -4615, 2556"
+594500,"!CAL -2.9, -32.7 4615, 2556"
+594500,"!CAL 0.0, 0.0 0, 0"
+594500,"!CAL eye check box: (L,R,T,B)"
+594500,"!CAL href cal range: (L,R,T,B)"
+594500,"!CAL Cal coeff:(X=a+bx+cy+dxx+eyy,Y=f+gx+goaly+ixx+jyy)"
+594500,"!CAL Prenormalize: offx, offy = -36.157 -50.275"
+594500,"!CAL Quadrant center: centx, centy ="
+594500,!CAL Corner correction:
+594500,!CAL Gains: cx:150.220 lx:145.988 rx:169.100
+594500,!CAL Gains: cy:127.278 ty:154.460 by:119.952
+594500,"!CAL Resolution (upd) at screen center: X=1.7, Y=2.1"
+594500,!CAL Gain Change Proportion: X: 0.158 Y: 0.288
+594500,!CAL Gain Ratio (Gy/Gx) = 0.847
+594500,!CAL Bad Y/X gain ratio: 0.847
+594500,"!CAL PCR gain ratio(x,y) = 2.340, 2.097"
+594500,"!CAL CR gain match(x,y) = 1.010, 1.010"
+594500,!CAL Slip rotation correction OFF
+594500,!CAL
+594500,!CAL Calibration points:
+594500,"!CAL -37.4, -48.8 0, 120"
+594500,"!CAL -39.8, -65.3 0, -2395"
+594500,"!CAL -36.4, -32.9 0, 2556"
+594500,"!CAL -71.7, -48.3 -4688, 120"
+594500,"!CAL -3.6, -47.2 4688, 120"
+594500,"!CAL -72.5, -62.7 -4764, -2395"
+594500,"!CAL -3.4, -63.7 4764, -2395"
+594500,"!CAL -70.4, -33.1 -4615, 2556"
+594500,"!CAL -4.2, -31.9 4615, 2556"
+594500,"!CAL 0.0, 0.0 0, 0"
+594500,"!CAL eye check box: (L,R,T,B)"
+594500,"!CAL href cal range: (L,R,T,B)"
+594500,"!CAL Cal coeff:(X=a+bx+cy+dxx+eyy,Y=f+gx+goaly+ixx+jyy)"
+594500,"!CAL Prenormalize: offx, offy = -37.351 -48.764"
+594500,"!CAL Quadrant center: centx, centy ="
+594500,!CAL Corner correction:
+594500,!CAL Gains: cx:156.994 lx:146.077 rx:158.409
+594500,!CAL Gains: cy:173.247 ty:160.196 by:189.350
+594500,"!CAL Resolution (upd) at screen center: X=1.7, Y=1.5"
+594500,!CAL Gain Change Proportion: X: 0.084 Y: 0.182
+594500,!CAL Gain Ratio (Gy/Gx) = 1.104
+594500,"!CAL Cross-Gain Ratios: X=0.084, Y=0.017"
+594500,"!CAL Quadrant fixup[0] = 0.054,0.066"
+594500,"!CAL Quadrant fixup[1] = 0.053,0.003"
+594500,"!CAL Quadrant fixup[2] = 0.009,0.034"
+594500,"!CAL Quadrant fixup[3] = 0.043,0.030"
+594500,"!CAL PCR gain ratio(x,y) = 2.284, 2.038"
+594500,"!CAL CR gain match(x,y) = 1.010, 1.010"
+594500,!CAL Slip rotation correction OFF
+594501,!CAL CALIBRATION HV9 LR LEFT GOOD
+594501,!CAL CALIBRATION HV9 LR RIGHT GOOD
+618098,"!CAL VALIDATION HV9 LR LEFT GOOD ERROR 0.27 avg. 0.70 max OFFSET 0.11 deg. 4.9,2.0 pix."
+618098,"!CAL VALIDATION HV9 LR RIGHT GOOD ERROR 0.48 avg. 1.47 max OFFSET 0.29 deg. 11.5,8.3 pix."
+618098,"VALIDATE LR POINT 0 LEFT at 960,540 OFFSET 0.08 deg. 3.7,-1.1 pix."
+618098,"VALIDATE LR 4POINT 0 RIGHT at 960,540 OFFSET 0.20 deg. 2.4,9.4 pix."
+618098,"VALIDATE LR POINT 1 LEFT at 960,92 OFFSET 0.46 deg. 20.3,9.3 pix."
+618098,"VALIDATE LR 4POINT 1 RIGHT at 960,92 OFFSET 0.61 deg. 27.7,11.3 pix."
+618098,"VALIDATE LR POINT 2 LEFT at 960,987 OFFSET 0.43 deg. -2.4,21.0 pix."
+618098,"VALIDATE LR 4POINT 2 RIGHT at 960,987 OFFSET 0.52 deg. -4.9,24.8 pix."
+618098,"VALIDATE LR POINT 3 LEFT at 115,540 OFFSET 0.33 deg. -3.8,15.4 pix."
+618098,"VALIDATE LR 4POINT 3 RIGHT at 115,540 OFFSET 0.67 deg. 12.7,29.9 pix."
+618098,"VALIDATE LR POINT 4 LEFT at 1804,540 OFFSET 0.42 deg. 14.5,-14.2 pix."
+618098,"VALIDATE LR 4POINT 4 RIGHT at 1804,540 OFFSET 0.73 deg. 35.4,3.3 pix."
+618098,"VALIDATE LR POINT 5 LEFT at 216,145 OFFSET 0.16 deg. -6.5,-4.7 pix."
+618098,"VALIDATE LR 4POINT 5 RIGHT at 216,145 OFFSET 0.57 deg. 12.2,24.8 pix."
+618098,"VALIDATE LR POINT 6 LEFT at 1703,145 OFFSET 0.47 deg. 5.3,-22.4 pix."
+618098,"VALIDATE LR 4POINT 6 RIGHT at 1703,145 OFFSET 0.58 deg. 18.1,21.8 pix."
+618098,"VALIDATE LR POINT 7 LEFT at 216,934 OFFSET 0.70 deg. -33.3,8.3 pix."
+618098,"VALIDATE LR 4POINT 7 RIGHT at 216,934 OFFSET 0.42 deg. -5.9,19.5 pix."
+618098,"VALIDATE LR POINT 8 LEFT at 1703,934 OFFSET 0.61 deg. 28.2,9.4 pix."
+618098,"VALIDATE LR 4POINT 8 RIGHT at 1703,934 OFFSET 1.47 deg. 46.5,-54.7 pix."
+674065,RECCFG CR 1000 2 1 LR
+674065,ELCLCFG BTABLER
+674065,GAZE_COORDS 0.00 0.00 1919.00 1079.00
+674065,THRESHOLDS L 63 226 R 62 232
+674065,ELCL_WINDOW_SIZES 160 160 0 0
+674065,CAMERA_LENS_FOCAL_LENGTH 38.00
+674065,PUPIL_DATA_TYPE RAW_AUTOSLIP
+674065,ELCL_PROC ELLIPSE (5)
+674065,ELCL_EFIT_PARAMS 1.01 4.00 0.15 0.05 0.65 0.65 0.00 0.00 0.30
+674066,!MODE RECORD CR 1000 2 1 LR
+694972,Reading START
+695059,TRIALID 1
+695059,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page00.png
+753391,Current Page END
+753465,Current Page END
+753559,TRIALID 2
+753559,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page01.png
+774551,Current Page END
+774551,MW Reported
+774613,Enter error page
+774620,displayed errorimage prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page01.png
+780564,Current Page END
+780655,RE: displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page01.png
+829050,Current Page END
+829123,TRIALID 3
+829123,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page02.png
+848571,Current Page END
+848572,MW Reported
+848638,Enter error page
+848645,displayed errorimage prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page02.png
+853839,Current Page END
+853928,RE: displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page02.png
+889493,Current Page END
+889562,TRIALID 4
+889562,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page03.png
+944662,Current Page END
+944735,Current Page END
+944823,TRIALID 5
+944824,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page04.png
+1008419,Current Page END
+1008507,Current Page END
+1008597,TRIALID 6
+1008598,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page05.png
+1069125,Current Page END
+1069199,Current Page END
+1069286,TRIALID 7
+1069287,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page06.png
+1081202,Current Page END
+1081202,MW Reported
+1081268,Enter error page
+1081275,displayed errorimage prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page06.png
+1090177,Current Page END
+1090270,RE: displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page06.png
+1134979,Current Page END
+1135053,TRIALID 8
+1135054,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page07.png
+1190797,Current Page END
+1190873,Current Page END
+1190963,TRIALID 9
+1190963,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page08.png
+1238746,Current Page END
+1238747,MW Reported
+1238810,Enter error page
+1238817,displayed errorimage prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page08.png
+1245901,Current Page END
+1245990,RE: displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page08.png
+1263473,Current Page END
+1263545,TRIALID 10
+1263546,displayed prisoners_dilemma/prisoners_dilemma_control/prisoners_dilemma_control_page09.png
+1327264,Current Page END
+1327338,Current Page END
+1332809,displayed comprehension questions
+1361003,displayed comprehension questions
+1383281,displayed comprehension questions
+1402627,displayed comprehension questions
+1414297,displayed comprehension questions
+1431081,displayed comprehension questions
+1458209,displayed comprehension questions
+1473126,displayed comprehension questions
+1488261,displayed comprehension questions
+1514057,displayed comprehension questions
+1530751,displayed comprehension questions
+1534464,displayed comprehension questions
