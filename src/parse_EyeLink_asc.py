@@ -10,6 +10,7 @@ import time
 import os
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from .page import Page
 
 def parse_EyeLinkAsc(elFilename):
@@ -241,7 +242,7 @@ def generate_pages(dfMsg):
         pages_time = dfMsg['time'].values
         pages_text = dfMsg['text'].values
         prev_message = 'IMNOTDEFINED'
-        for index, message in enumerate(pages_text):
+        for index, message in tqdm(enumerate(pages_text), total=len(pages_text), desc="Processing Message DataFrame"):
             
             # looking for the timestamp when the task begins
             if 'Reading START' in message:

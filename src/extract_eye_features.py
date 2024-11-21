@@ -17,20 +17,23 @@
 #                        see convert_click_to_time func for more details
 # Packages
 import os
-import glob
 import re
+import glob
+import copy
+import pickle
+import random
 import numpy as np
-import pandas as pd                 
+import pandas as pd   
+from collections import deque              
 from . import parse_EyeLink_asc as eyelink
-from .match_word import match_clicks2words
-#import plot_reading as pr                   # for plotting
-from .calculate_eye_features import calculate_all_features
 from .utils import interpolate_blink
+from .match_word import match_clicks2words
+from .calculate_eye_features import calculate_all_features
 
 # Functions
 
 
-def extract_group_features(data_path='../../../Data/', win_type='some type'):
+def extract_group_features(data_path='../../../Data/', win_type='default'):
     '''
     This function finds all individual subject folder and call function to them
     to extract eye features. 
@@ -63,7 +66,7 @@ def extract_group_features(data_path='../../../Data/', win_type='some type'):
         extract_subject_features(sub_id, win_type=win_type)
             
 
-def extract_subject_features(sub_id, win_type='some type'):
+def extract_subject_features(sub_id, win_type='default'):
     '''
     This function serves as a wrapper that calls other function to parse and 
     analyze eye features, 
@@ -94,6 +97,11 @@ def extract_subject_features(sub_id, win_type='some type'):
     sub_path = f'../../../Data/s{sub_id}'
     dir_eye, dir_log = f'{sub_path}/eye/', f'{sub_path}/log/'
     eye_files, beh_files = np.sort(os.listdir(dir_eye)), np.sort(os.listdir(dir_log))
+
+    # make the folder to store page objects
+    dir_page = f'{sub_path}/page/'
+    os.makedirs(dir_page, exist_ok=True)
+    overwrite_page = False
     
     # Results storage
     res_L, res_R = [], []
@@ -117,10 +125,29 @@ def extract_subject_features(sub_id, win_type='some type'):
                     print(f'Eye-Tracking File Name: {eye_file}')
                     print(f'PsychoPy File Name: {beh_file}')
 
-                    # call function to extract eye features for a single run
-                    eye_file_path = dir_eye + eye_file
-                    psy_file_path = dir_log + beh_file
-                    df_L_, df_R_ = extract_run_features(eye_file_path, psy_file_path,           win_type=win_type)
+                    # define the name of the file that stores page objects for this run
+                    page_file_path = dir_page + f'r{eye_index}_pages'
+
+                    if not os.path.exists(page_file_path) or overwrite_page:
+                        # call function to extract eye features for a single run
+                        eye_file_path = dir_eye + eye_file
+                        psy_file_path = dir_log + beh_file
+
+                        pages = process_data2pages(eye_file_path, psy_file_path)
+
+                        # save page objects into the file
+                        print('Save page objects into the file...')
+                        with open(page_file_path, 'wb') as file:
+                            pickle.dump(pages, file)
+
+                    # read data directly from the page object file
+                    else:
+                        print('Directly read page objects from the file...')
+                        with open(page_file_path, 'rb') as file:
+                            pages = pickle.load(file)
+
+                    print('Extract and calculate eye features from each page... ')
+                    df_L_, df_R_ = extract_run_features(pages, win_type)
 
                     if not df_L_.empty:
                         res_L.append(df_L_)
@@ -130,8 +157,6 @@ def extract_subject_features(sub_id, win_type='some type'):
             # raise an exception if no PsychoPy file matches eye-tracking file
             if not is_match:
                 raise Exception(f'Eye file: {eye_file} has no matched PsychoPy file!')
-        
-        break
     
     # Save concatenated results
     if res_L:
@@ -150,17 +175,17 @@ def extract_subject_features(sub_id, win_type='some type'):
     print(f'Subject: {sub_id} has been DONE!\n')
 
 
-def extract_run_features(eye_file_path, psy_file_path, win_type='some type', dataPlot=True):
+def process_data2pages(eye_file_path, psy_file_path):
     '''
-    main body to control parsing and feature extraction
-    The variables here come from the argParse located at the end of this file. 
+    _summary_
 
-    input:  fileDir - directory where the .asc files live
-            fileName - filename for the .asc file
-            dataPlot - type of plot to display once features are extracted
-    output: None, shows plots if user selected
-    '''
+    Args:
+        eye_file_path (_type_): _description_
+        psy_file_path (_type_): _description_
 
+    Returns:
+        _type_: _description_
+    '''    
     # get the data in pandas dataframe
     dfTrial,dfMsg,dfFix,dfSacc,dfBlink,dfSamples = eyelink.load_data(eye_file_path)
     # interpolate samples with blink and saccade info
@@ -172,13 +197,7 @@ def extract_run_features(eye_file_path, psy_file_path, win_type='some type', dat
     # match clicks to words
     matched_words = match_clicks2words(psy_file_path)
 
-    # lists to store results
-    all_res_left, all_res_right = [], []
-
-    # TODO
-    # use joblib to save page objects to save pre-computed data
-
-    print('Extract and calculate eye features from each page... ')
+    print('Match fixations to words and compute MW onset and offset...')
     # loop thru each page
     for page in pages:
         # store features only for the 1st pass pages
@@ -196,9 +215,56 @@ def extract_run_features(eye_file_path, psy_file_path, win_type='some type', dat
             # call function to estimate the MW onset and offset
             page.find_MW_time(matched_words)
 
-        # calculate eye features with defined time window
-        res_left, res_right = calculate_all_features(page)
+    return pages
 
+
+def extract_run_features(pages, win_type, dataPlot=True):
+    '''
+    main body to control parsing and feature extraction
+    The variables here come from the argParse located at the end of this file. 
+
+    input:  fileDir - directory where the .asc files live
+            fileName - filename for the .asc file
+            dataPlot - type of plot to display once features are extracted
+    output: None, shows plots if user selected
+    '''
+    
+    if win_type == 'same-dur':
+        list_normal = []
+        list_mw = []
+        # loop thru each page
+        for page in pages:
+            # for any reported page
+            if np.isnan(page.mw_onset):
+                # categorize page based on MW report
+                list_normal.append(page)
+            else:
+                list_mw.append(page)
+
+        # sort normal page based on page duration
+        q_normal = deque(sorted(list_normal, key=lambda page: page.page_dur, reverse=True))
+        # sort mand-wandering page based on mw duration
+        q_mw = deque(sorted(list_mw, key=lambda page: page.mw_offset - page.mw_onset, reverse=True))
+
+        pages, win_time = compute_window_time(pages, q_normal, q_mw)
+            
+    # lists to store results
+    all_res_left, all_res_right = [], []
+    # loop thru each page
+    for page in pages:
+        res_left, res_right = None, None
+        if win_type == 'default':
+            # calculate eye features with defined time window
+            res_left, res_right = calculate_all_features(page)
+            
+        elif win_type == 'same-dur':
+            page_key = str(page.page_num) + str(page.mw_reported)
+            if page_key in win_time:
+                win_start, win_end = win_time[page_key]
+                # calculate eye features with defined time window
+                res_left, res_right = calculate_all_features(page, win_start=win_start, win_end=win_end)
+        
+        # save current page results
         if res_left is not None:
             # fill in other information (i.e. page, time info etc)
             fill_dict(res_left, page)
@@ -210,6 +276,62 @@ def extract_run_features(eye_file_path, psy_file_path, win_type='some type', dat
             all_res_right.append(res_right)
 
     return pd.DataFrame(all_res_left), pd.DataFrame(all_res_left)
+
+
+def compute_window_time(pages, q_normal, q_mw):
+    
+    win_time = {}
+    while len(q_mw):
+        if len(q_normal):
+            page_normal = q_normal.popleft()
+            page_mw = q_mw.popleft()
+             # Calculate offsets and duration for the mind-wandering window
+            mw_onset = page_mw.mw_onset - page_mw.time_start
+            mw_offset = page_mw.mw_offset - page_mw.time_start
+            mw_dur = page_mw.mw_offset - page_mw.mw_onset
+
+            if page_normal.time_start + mw_offset > page.time_end:
+                win_start = random.uniform(page_normal.time_start, page_normal.time_end-mw_dur)
+            else:
+                win_start = page_normal.time_start + mw_onset
+            win_end = win_start + mw_dur
+
+            # save win_start and win_end to the dictionary
+            page_key = str(page_normal.page_num) + str(page_normal.mw_reported)
+            win_time[page_key] = (win_start, win_end)
+
+            page_key = str(page_mw.page_num) + str(page_mw.mw_reported)
+            win_time[page_key] = (page_mw.mw_onset, page_mw.mw_offset)
+
+        else:
+            page_mw = q_mw.popleft()
+            mw_dur = page_mw.mw_offset - page_mw.mw_onset
+            nr_dur = page_mw.mw_onset - page_mw.time_start
+            if mw_dur > nr_dur:
+                continue
+            page_normal = copy.deepcopy(page_mw)
+            page_normal.mw_reported = False
+            page_normal.mw_onset = np.nan
+            page_normal.mw_offset = np.nan
+            page_normal.mw_valid = False
+            
+            win_start = random.uniform(page_normal.time_start, page_normal.mw_onset-mw_dur)
+            win_end = win_start + mw_dur
+            
+            # save win_start and win_end to the dictionary
+            page_key = str(page_normal.page_num) + str(page_normal.mw_reported)
+            win_time[page_key] = (win_start, win_end)
+
+            page_key = str(page_mw.page_num) + str(page_mw.mw_reported)
+            win_time[page_key] = (page_mw.mw_onset, page_mw.mw_offset)
+
+            # insert the "normal" page right before the mind-wandering page
+            for index, page in enumerate(pages):
+                if page.page_num == page_mw.page_num:
+                    pages.insert(index, page_normal)
+                    break
+
+    return pages, win_time
 
 
 def fill_dict(res, page):

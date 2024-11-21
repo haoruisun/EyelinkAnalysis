@@ -8,7 +8,6 @@ Modified 1/30/24 by HS - add documentations
 """
 
 import numpy as np
-import reading_analysis as ra               # for all extra functions
 from matplotlib import pyplot as plt        # plotting data
 from matplotlib import animation as animation
 
