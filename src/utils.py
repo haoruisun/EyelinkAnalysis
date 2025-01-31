@@ -28,6 +28,7 @@ def truncate_df_by_time(page, win_start, win_end):
         win_start (_type_): _description_
         win_end (_type_): _description_
     '''    
+
     # blinks
     dfBlink = page.dfBlink
     blink_indices = (dfBlink['tStart'] >= win_start*1000) & \
@@ -52,10 +53,6 @@ def truncate_df_by_time(page, win_start, win_end):
                     (dfSamples['tSample'] <= win_end*1000)
     page.dfSamples = dfSamples.loc[pupil_indices].copy()
 
-    # save the window duration in SECONDS
-    page.win_dur = win_end - win_start
-    page.win_start = win_start
-    page.win_end = win_end
 
 
 def interpolate_blink(dfSamples, dfBlink, dfSaccade):
@@ -89,6 +86,13 @@ def interpolate_blink(dfSamples, dfBlink, dfSaccade):
         # extract blink and saccade information for one eye
         dfBlink_ = dfBlink[dfBlink['eye']==eye]
         dfSaccade_ = dfSaccade[dfSaccade['eye']==eye]
+
+        # truncate blink dataframe using the saccade information
+        t_start = dfSaccade_['tStart'].min()
+        t_end = dfSaccade_['tEnd'].max()
+        mask = (dfBlink_['tStart'] > t_start) & (dfBlink_['tEnd'] < t_end)
+        dfBlink_ = dfBlink_[mask]
+
         # convert df columns to np.arrays for interpolation
         col_names = [f'{eye}X', f'{eye}Y', f'{eye}Pupil']
         data_to_interpolate = []
@@ -117,8 +121,8 @@ def interpolate_blink(dfSamples, dfBlink, dfSaccade):
             t2 = after_sac["tStart"].min()
 
             # check for missing vals in t1 or t4 and use fallback if needed
-            if pd.isna(t1) or pd.isna(t2):
-                raise ValueError("t1/t2 are Na")
+            # if pd.isna(t1) or pd.isna(t2):
+            #     raise ValueError("t1/t2 are Na")
             
             # check the timing of saccades are within the time array for samples
             if (t1 > sample_time[0]) and (t2 < sample_time[-1]):

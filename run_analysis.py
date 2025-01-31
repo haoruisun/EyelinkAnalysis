@@ -5,14 +5,25 @@ This is the main function that calls moduels and extracts eye features.
 Created on 10/29/24 by HS
 
 """
+import glob
 import argparse
 import src.extract_eye_features as ef
 
 def main(sub_id='all', win_type='default'):
+    data_path='../../../Data/'
     if sub_id == 'all':
-        ef.extract_group_features(win_type=win_type)
+        if win_type == 'slide':
+            # get all subject folders in the root path
+            subject_folders = glob.glob(f'{data_path}s[0-9]*')
+            # loop through individual subject
+            for sub_folder in subject_folders:
+                ef.extract_subject_features_slide(sub_folder)
+            return
+    if sub_id == 'all':
+        ef.extract_group_features(data_path=data_path,win_type=win_type)
     else:
-        ef.extract_subject_features(sub_id)
+        sub_folder = f'{data_path}/s{sub_id}'
+        ef.extract_subject_features(sub_folder, win_type)
     return
 
 

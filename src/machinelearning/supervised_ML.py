@@ -83,15 +83,18 @@ def plot_roc(true_labels, predicted_probs):
 
 #%% Load Dataset
 #file_path = r"E:\MindlessReading\Data\group_R_features_whole.csv"
-file_path = r"E:\MindlessReading\Data\group_R_features_last.csv"
+#file_path = r"E:\MindlessReading\Data\group_R_features_last.csv"
+file_path = '/Users/hsun11/Documents/GlassBrainLab/MindlessReading/Data/group_R_features_same-dur.csv'
 df = pd.read_csv(file_path)
+
+#%%
 # change the labels to binary 1 and 0
 # 1: MR
 # 0: NR
-df['label'] = df['win_type'].replace({'MR': 1, 'NR': 0})
-
+#df['label'] = df['win_type'].replace({'MR': 1, 'NR': 0})
+df['label'] = df['is_MWreported']
 # throw out invalid samples
-df_valid = df.dropna(subset=['win_type'])
+#df_valid = df.dropna(subset=['win_type'])
 
 
 #%% EDA
@@ -144,11 +147,10 @@ plt.show()
 
 #%% ML
 # define features
-features = ['norm_blink_freq', 'pupil_slope',
-            'mean_pupil_size', 'mean_blink_duration', 'norm_pupil_size',
-            'norm_num_word_fix', 'norm_saccade_count', 'norm_in_word_regression',
-            'norm_out_word_regression', 'zscored_zipf_duration_correlation',
-            'norm_total_viewing', 'zscored_word_length_duration_correlation']
+features = ['pupil_slope', 'norm_pupil', 'norm_fix_word_num', 
+            'norm_sac_num', 'norm_in_word_reg',
+            'norm_out_word_reg', 'zscored_zipf_fixdur_corr',
+            'norm_total_viewing', 'zscored_word_length_fixdur_corr']
 
 # define models
 models = {
@@ -212,7 +214,7 @@ predicted_probs_dict = {
                     'XGBoost': []
                 }
 
-df_cleaned = df_valid.dropna(subset=features)
+df_cleaned = df.dropna(subset=features)
 # run ML
 for model_name, model in models.items():
     auroc_scores, all_confusion_matrices, true_labels, predicted_probs = supervised_ml_pipeline(df_cleaned, model, features=features, label='label', subject_column='sub_id')
@@ -288,3 +290,8 @@ plt.bar(range(len(features)), importances[indices], align="center")
 plt.xticks(range(len(features)), [features[i] for i in indices], rotation=45, ha='right')
 plt.ylabel('Weight')
 plt.show()
+
+# %% Plot Time Distribution
+df_cleaned['win_label'] = df_cleaned['label'].replace({True: 'MR', False: 'NR'})
+plt.figure()
+sns.histplot(data=df_cleaned, x='win_dur', hue='win_label', kde=True)

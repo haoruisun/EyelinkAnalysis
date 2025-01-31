@@ -1,7 +1,7 @@
 # class representation of a single page and all the details of that page
 
 # Created 05/22 by GS
-# Updated 10/10/23 by HS - turn true_words and fixations into pd dataframe
+# Updated 10/10/23 by HS - turn dfWordss and fixations into pd dataframe
 #                         - simplify fixation match
 # Updated 11/1/23 by HS - fix the bug related df when matching fixation to word
 # Updated 11/9/23 by HS - add 'zipf' to self.fixations for direct zipf-duration
@@ -34,18 +34,19 @@ class Page():
         # reported mind-wandering onset and offset
         self.mw_onset = np.nan
         self.mw_offset = np.nan
+        self.mw_dur = np.nan
         self.mw_valid = False
         
         # time window to extract eye features
         self.win_start = np.nan
         self.win_end = np.nan
+        self.win_dur = np.nan
 
         # image file location saved locally
         self.image_file_location = imageLocation # page folder and title information
         self.reading = None
-        # self.image_ = imageLocation.split('/')[0] # reading choice=[mismeasure_man, soap_bubbles, gambled_away]
         self.page_view = page_view # '1st Pass' or 'Select Error' or '2nd Pass'
-
+        self.run_number = np.nan
         self.page_number = np.nan # parsed from file lcoation infromation. page number that is being viewed on image
         self.time_start = start_time
         self.time_end = np.nan
@@ -62,6 +63,7 @@ class Page():
         # Columns: 
         # tStart, tEnd (miliseconds), duration, xAvg, yAvg, pupilAvg, fixed_word, fixed_word_index, zipf
         self.dfFix = None 
+        self.dfAllFix = None
         
         # dataframe adapted from saved blink csv file
         # Columns: 
@@ -112,6 +114,7 @@ class Page():
         self.dfSacc = dfSacc
         self.dfSamples = dfSamples
         truncate_df_by_time(self, self.time_start, self.time_end)
+        self.dfAllFix = self.dfFix.copy()
 
 
     def load_word(self, task_path='../../MindlessReading/Reading', zipf_dict=None):
@@ -142,19 +145,22 @@ class Page():
         # loop through each row to find the zipf score and save results in the column 'zipf'
         page_specific_df['zipf'] = np.nan
         for row_index, row in page_specific_df.iterrows():
-            word = row['words'].lower() # convert to lower-case
-            word.translate(str.maketrans('', '', string.punctuation)) # remove punctuation
-            # use try-except to ignore words cannot be recognized by textblob
-            try:
-                word = TextBlob(word).words[0].singularize() # remove plurals
-            except:
-                pass
-                
-            if word in zipf_dict.keys():
-                page_specific_df.at[row_index, 'zipf'] = zipf_dict[word]
+            if isinstance(row['words'], str):
+                word = row['words'].lower() # convert to lower-case
+                word.translate(str.maketrans('', '', string.punctuation)) # remove punctuation
+                # use try-except to ignore words cannot be recognized by textblob
+                try:
+                    word = TextBlob(word).words[0].singularize() # remove plurals
+                except:
+                    pass
+                    
+                if word in zipf_dict.keys():
+                    page_specific_df.at[row_index, 'zipf'] = zipf_dict[word]
 
-        # true_words is the dataframe
+        # dfWordss is the dataframe
         self.dfWords = page_specific_df.reset_index()
+        # add is_clicked column to the dataframe
+        self.dfWords['is_clicked'] = 0
     
 
     def match_fix2words(self):
@@ -190,9 +196,10 @@ class Page():
                 self.dfFix.at[row_index, 'fixed_word'] = word
                 self.dfFix.at[row_index, 'fixed_word_index'] = matched_index
                 self.dfFix.at[row_index, 'zipf'] = self.dfWords['zipf'].iloc[matched_index]
-                self.dfFix.at[row_index, 'word_len'] = len(word)
+                word_len = len(word) if isinstance(word, str) else 0
+                self.dfFix.at[row_index, 'word_len'] = word_len
                 
-                # store matched fixation info into true_words
+                # store matched fixation info into dfWordss
                 self.dfWords.at[matched_index, 'fix_num'] += 1
                 self.dfWords.at[matched_index, 'fix_dur'] += fix['duration'] / 1000 # convert to seconds
         
@@ -289,6 +296,7 @@ class Page():
             tStart = self.dfFix['tStart'].iloc[offset_ind]
             self.mw_offset = tStart/1000
         
+        self.mw_dur = self.mw_offset-self.mw_onset
         # check for valid mind-wandering onset and offset for the current page object
-        if self.mw_onset > 0 and (self.mw_offset-self.mw_onset) > 5:
+        if self.mw_dur >= 5:
             self.mw_valid = True

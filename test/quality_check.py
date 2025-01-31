@@ -20,15 +20,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import psychopy_analysis as pa
 from glob import glob
 from statannot import add_stat_annotation
 from scipy import stats
 
 # %% Parameters and Variables
 # define root path relative to current working directory
-#path = '../../../Data/'
-path = '../../Data/'
+path = '../../../../Data/'
+#path = '../../Data/'
 subfolders = [f.path for f in os.scandir(path) if f.is_dir()]
 
 # declare empty dict to store reading time
@@ -95,7 +94,7 @@ def append_files(path, file_pattern='*[mono|R]_features*',
     
     # calculate z-score of two correlation coefficient columns
     # zipf_duration_correlation and word_length_duration_correlation
-    for col_name in ['zipf_duration_correlation', 'word_length_duration_correlation']:
+    for col_name in ['zipf_fixdur_corr', 'word_length_fixdur_corr']:
         # get index
         index = df_group.columns.get_loc(col_name)
         # extract the column values
@@ -793,6 +792,27 @@ df_last = append_files(path, file_pattern='*[mono|R]_features_last*',
                         file_name='group_R_features_last.csv')
 df_last = df_last[df_last['num_fixations']>0]
 
+# %% Append and save group eye features 
+path = '../../../../Data/'
+df = append_files(path, file_pattern='*[mono|R]_features_same-dur*',
+                  file_name='group_R_features_same-dur.csv')
+
+
+#%% Append default dataset
+path = '../../../../Data/'
+df = append_files(path, file_pattern='*[mono|R]_features_default*',
+                  file_name='group_R_features_default.csv')
+
+#%% Reading time hist
+df = df[~df['is_MWreported']]
+plt.figure()
+df['reading_time'] = df['page_end'] - df['page_start']
+avg = df['reading_time'].mean()
+med = df['reading_time'].median()
+sns.histplot(data=df, x='reading_time', color='gray')
+plt.grid()
+plt.xlabel('Time(s)')
+plt.title(f'Reading Time\nMean:{avg:.2f}, Median:{med:.2f}')
 
 # %% Load group eye features
 #file_path = '../../../Data/group_R_features_whole.csv'
