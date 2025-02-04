@@ -24,6 +24,7 @@ import glob
 import copy
 import pickle
 import random
+import warnings
 import numpy as np
 import pandas as pd   
 from tqdm import tqdm
@@ -35,83 +36,161 @@ from .calculate_eye_features import calculate_all_features
 from .plot_reading import plot_reading_results
 
 # Functions
-def extract_group_features(data_path='../../../Data/', win_type='default', is_plot=False):
-    '''
-    This function finds all individual subject folder and call function to them
-    to extract eye features. 
-
-    Parameters
-    ----------
-    root_path : srtring, optional
-        DESCRIPTION. The relative path of data collection folder
-        The default is '../../../Data/'.
-    mono_dataset : string list, optional
-        DESCRIPTION. Contains information about the mono dataset
-        For example, if s10001 was recorded using mono mode, mono_dataset=[10001]
-        The default is [].
-
-    Returns
-    -------
-    None.
-
-    '''
-    # get all subject folders in the root path
-    subject_folders = glob.glob(f'{data_path}s[0-9]*')
-    # loop through individual subject
-    for subject_folder in subject_folders:
-        # run function on that subject
-        extract_subject_features(subject_folder, win_type, is_plot)
-            
-
 def extract_subject_features(sub_folder, win_type, is_plot=False):
-    '''
-    This function serves as a wrapper that calls other function to parse and 
-    analyze eye features, 
+    """
+    Extracts and processes eye-tracking features for a given subject.
+
+    This function serves as a wrapper to:
+    1. Load precomputed page objects or generate them if necessary.
+    2. Compute eye-tracking features using either:
+       - A sliding window approach (`slide` mode)
+       - A fixed window per page (`default` or `same-dur` mode)
+    3. Optionally plot fixation results.
+    4. Save extracted features into CSV files.
+
+    Sliding Window vs. Fixed Window Approach
+    The sliding window method **does not create new page objects** for each window shift.  
+    Instead, it reuses the same page object, making it **more memory-efficient** compared to the fixed window approach.
 
     Parameters
     ----------
-    sub_path : string
-        DESCRIPTION. subject folder path
-    mode : string, optional
-        DESCRIPTION. eye-tracker recording mode: binocular or monocular 
-            The default is 'bino'.
+    sub_folder : str
+        Path to the subject folder containing data.
+    win_type : str
+        Type of windowing method to use ('slide' for sliding window, otherwise fixed windowing).
+    is_plot : bool, optional
+        Whether to generate and save fixation plots. Default is False.
 
     Raises
     ------
     Exception
-        DESCRIPTION. If no PsychoPy file matches eye-tracking file, i.e. run 
-        numbers are not matched
-                                                                
+        If no PsychoPy file matches the eye-tracking file (i.e., run numbers do not match).
+
     Returns
     -------
-    None. Subject eye features (L&R or mono) will be saved as csv file(s)
-
-    '''
+    None
+        Processed eye features (L & R) are saved as CSV files.
+    """
     # extract subject ID
     sub_id = re.findall(r's\d+', sub_folder)[0]
     # get the last five digit ID
     sub_id = int(sub_id[-5:])
     # print beginning sentence
-    print(f'\nBegin to Extract Eye Features for Subject {sub_id}...')
+    print(f'\nBegin Extracting Eye Features for Subject {sub_id}...')
+    print('====================================================================')
 
-    # Define directories
-    sub_path = sub_folder
-    dir_eye, dir_log = f'{sub_path}/eye/', f'{sub_path}/log/'
-    eye_files, beh_files = np.sort(os.listdir(dir_eye)), np.sort(os.listdir(dir_log))
-
-    # make the folder to store page objects
-    dir_page = f'{sub_path}/page/'
-    os.makedirs(dir_page, exist_ok=True)
-    overwrite_page = False
+    # load pages
+    overwrite_page = True
+    all_pages = load_pages(sub_folder, overwrite_page)
     
-    # loop thru
+    # for sliding window
+    if win_type == 'slide':
+        print('Computing eye features using a sliding window approach...')
+        # Sliding window parameters
+        slidewindow_len = 5
+        time_offset = 5
+        page_time_offset = time_offset + slidewindow_len / 2
+        step = 0.25
+        win_type = f'slide_wlen{slidewindow_len}'
+        # lists to store results
+        all_res_left, all_res_right = [], []
+
+        for page in tqdm(all_pages, desc="Calculating features on each page"):
+            if page.mw_reported:
+                # Process MW onset
+                mid_point = page.mw_onset
+                process_sliding_window(page, mid_point, 'MW_onset', slidewindow_len, time_offset, step, all_res_left, all_res_right)
+
+                # Process self-report event (offset)
+                mid_point = page.time_end - slidewindow_len / 2
+                process_sliding_window(page, mid_point, 'self_report', slidewindow_len, time_offset, step, all_res_left, all_res_right)
+
+            else:
+                # Generate random mid_point for control case
+                mid_point = random.uniform(page.time_start + page_time_offset, page.time_end - page_time_offset)
+                process_sliding_window(page, mid_point, 'control', slidewindow_len, time_offset, step, all_res_left, all_res_right)
+
+         # Convert results to DataFrames
+        df_L, df_R = pd.DataFrame(all_res_left), pd.DataFrame(all_res_right)
+
+        # Normalize pupil size across trials to reduce individual differences
+        for df in [df_L, df_R]:
+            if not df.empty:
+                df['norm_pupil'] = df['mean_pupil'] / df['mean_pupil'].mean()
+    
+    else:
+        print('Computing window start and end times for each page...')
+        all_pages = compute_window_time(all_pages, win_type)
+
+        print('Extracting and calculating eye features...')
+        df_L, df_R = compute_features(all_pages)
+
+        if is_plot:
+            print('Ploting fixations...')
+            plot_reading_results(all_pages, sub_folder, win_type)
+
+    # Save concatenated results
+    if not df_L.empty:
+        df_L.to_csv(f'{sub_folder}/s{sub_id}_L_features_{win_type}.csv')
+        print('Saved Data for L Eye.')
+
+    if not df_R.empty:
+        df_R.to_csv(f'{sub_folder}/s{sub_id}_R_features_{win_type}.csv')
+        print('Saved Data for R Eye.')
+    
+    # print finish sentence
+    print('================================= Log =================================')
+    print(f'Subject: {sub_id} has been DONE!\n')
+
+
+def load_pages(sub_folder, overwrite_page):
+    """
+    Loads or generates page objects for a given subject.
+
+    This function checks whether precomputed page objects exist in the subject's folder.
+    If `overwrite_page` is True or the folder does not exist, it regenerates the page 
+    objects from eye-tracking and PsychoPy log files. Otherwise, it loads precomputed 
+    pages from pickle files.
+
+    Parameters
+    ----------
+    sub_folder : str
+        The path to the subject folder containing eye-tracking and log files.
+    overwrite_page : bool
+        Whether to overwrite existing page objects and regenerate them.
+
+    Returns
+    -------
+    list
+        A list of page objects, either loaded from pickle files or newly created.
+    """
+
+    # Define the directory where page objects are stored
+    dir_page = os.path.join(sub_folder, "page")
+
+    # Ensure the page directory exists, and set overwrite flag if newly created
+    if not os.path.exists(dir_page):
+        print("Generating page objects...")
+        os.makedirs(dir_page)
+        overwrite_page = True
+
+    # List to store all loaded/generated pages
     all_pages = []
-    for eye_file in eye_files:
-        # extract run index from eye file
-        eye_index = extract_run_index(eye_file, '.asc')
-        if eye_index < 0:
-            continue
-        else:
+
+    # If overwrite or page folder doesn't exist, read in eye-tracking and psychopy files to 
+    # generate page objects and save them to the folder
+    if overwrite_page:
+        # Define directories for eye-tracking and behavioral log files
+        dir_eye, dir_log = os.path.join(sub_folder, "eye"), os.path.join(sub_folder, "log")
+        # Get sorted lists of eye-tracking and PsychoPy files
+        eye_files, beh_files = np.sort(os.listdir(dir_eye)), np.sort(os.listdir(dir_log))   
+
+         # Loop through eye-tracking files and find matching PsychoPy files
+        for eye_file in eye_files:
+            eye_index = extract_run_index(eye_file, ".asc")
+            if eye_index < 0:  # Skip invalid indices
+                continue
+        
             # boolean variable to make sure every eye file matches to a psychopy file
             is_match = False
             for beh_file in beh_files:
@@ -123,57 +202,37 @@ def extract_subject_features(sub_folder, win_type, is_plot=False):
                     print(f'\n============================ Run{eye_index} Log ==============================')
                     print(f'Eye-Tracking File Name: {eye_file}')
                     print(f'PsychoPy File Name: {beh_file}')
+                    # Define the name of the file that stores page objects for this run
+                    page_file_path = os.path.join(dir_page, f'r{eye_index}_pages')
+                    # Define file paths for eye-tracking and PsychoPy log files
+                    eye_file_path = os.path.join(dir_eye, eye_file)
+                    psy_file_path = os.path.join(dir_log, beh_file)
 
-                    # define the name of the file that stores page objects for this run
-                    page_file_path = dir_page + f'r{eye_index}_pages'
+                    pages = process_data2pages(eye_file_path, psy_file_path)
+                    # Save page objects to a pickle file
+                    print("Saving page objects to file...")
+                    with open(page_file_path, 'wb') as f:
+                        pickle.dump(pages, f)
+                    # Append pages to the main list
+                    all_pages.extend(pages)
+                    break  # Skip remaining PsychoPy files once a match is found
 
-                    if not os.path.exists(page_file_path) or overwrite_page:
-                        # call function to extract eye features for a single run
-                        eye_file_path = dir_eye + eye_file
-                        psy_file_path = dir_log + beh_file
-
-                        pages = process_data2pages(eye_file_path, psy_file_path)
-
-                        # save page objects into the file
-                        print('Save page objects into the file...')
-                        with open(page_file_path, 'wb') as file:
-                            pickle.dump(pages, file)
-
-                    # read data directly from the page object file
-                    else:
-                        print('Directly read page objects from the file...')
-                        with open(page_file_path, 'rb') as file:
-                            pages = pickle.load(file)
-
-                    # add pages for the current run
-                    all_pages += pages
             # raise an exception if no PsychoPy file matches eye-tracking file
             if not is_match:
                 raise Exception(f'Eye file: {eye_file} has no matched PsychoPy file!')
     
-    print(f'\n=====================================================================')
-    print('Compute window start and end time for each page...')
-    all_pages = compute_window_time(all_pages, win_type)
-
-    print('Extract and calculate eye features...')
-    df_L, df_R = extract_features(all_pages)
-
-    if is_plot:
-        print('Ploting fixations...')
-        plot_reading_results(all_pages, sub_folder, win_type)
-
-    # Save concatenated results
-    if not df_L.empty:
-        df_L.to_csv(f'{sub_path}/s{sub_id}_L_features_{win_type}.csv')
-        print('Saved Data for L Eye.')
-
-    if not df_R.empty:
-        df_R.to_csv(f'{sub_path}/s{sub_id}_R_features_{win_type}.csv')
-        print('Saved Data for R Eye.')
+    # directly read page objects from the file
+    else:
+        # Load precomputed page objects from pickle files
+        print("Loading precomputed page objects from files...")
+        # Get all matching pickle files
+        for file in os.listdir(dir_page):
+            file_path = os.path.join(dir_page, file)
+            with open(file_path, "rb") as f:
+                pages = pickle.load(f)  # Assuming each file contains a list of pages
+            all_pages += pages
     
-    # print finish sentence
-    print('================================= Log =================================')
-    print(f'Subject: {sub_id} has been DONE!\n')
+    return all_pages
 
 
 def process_data2pages(eye_file_path, psy_file_path):
@@ -222,7 +281,7 @@ def process_data2pages(eye_file_path, psy_file_path):
     return pages
 
 
-def extract_features(pages):
+def compute_features(pages):
     '''
     _summary_
 
@@ -456,426 +515,70 @@ def extract_run_index(file_name, file_type, re_pattern=r'r[0-9]'):
     return run_index
 
 
-def extract_subject_features_slide(sub_folder):
-    '''
-    Extracts eye features in sliding windows for a given subject. This function handles
-    the extraction of features in two scenarios: when mind-wandering (MW) is reported 
-    and when it is not. It saves the resulting feature data into CSV files for both 
-    the left and right eye.
+
+def process_sliding_window(page, mid_point, label, slidewindow_len, time_offset, step, all_res_left, all_res_right):
+    """
+    Processes eye features within a sliding window around a given mid_point.
 
     Parameters
     ----------
-    sub_folder : str
-        The path to the subject folder containing page objects (pickled files).
+    page : Page object
+        The page object containing eye-tracking data.
+    mid_point : float
+        The central time point around which the sliding window is applied.
+    label : str
+        Label indicating the type of event (e.g., 'MW_onset', 'self_report', 'control').
+    slidewindow_len : float
+        Length of the sliding window.
+    time_offset : float
+        The maximum allowed offset for backward and forward sliding.
+    step : float
+        Step size for the sliding window.
+    all_res_left : list
+        List to store left eye results.
+    all_res_right : list
+        List to store right eye results.
+    """
 
-    Returns
-    -------
-    None
-        The function will save the results as CSV files: 
-        - s{sub_id}_L_features_slide.csv (Left Eye)
-        - s{sub_id}_R_features_slide.csv (Right Eye)
-    '''
-    # extract subject ID
-    sub_id = re.findall(r's\d+', sub_folder)[0]
-    # get the last five digit ID
-    sub_id = int(sub_id[-5:])
-    # print beginning sentence
-    print(f'\nBegin to extract eye features in sliding windows for subject {sub_id}...')
+    # handle the case where no time points were assigned to MW onset/offset
+    if np.isnan(mid_point):
+        print("Warning: Cannot convert float NaN to integer. Time point was not found.")
+        return
 
-    # make the folder to store page objects
-    dir_page = f'{sub_folder}/page/'
-    if not os.path.exists(dir_page):
-        raise FileNotFoundError("Page folder not found. Run feature extraction first.")
-    
-    # Get all matching pickle files
-    pickle_files = [f for f in os.listdir(dir_page)]
+    total_steps = time_offset / step
+    page_copy = copy.deepcopy(page)
 
-    # Load all pages from the pickle files
-    all_pages = []
-    print('Directly read page objects from the file...')
-    for file in pickle_files:
-        file_path = os.path.join(dir_page, file)
-        with open(file_path, "rb") as f:
-            pages = pickle.load(f)  # Assuming each file contains a list of pages
-        all_pages += pages
-    
-    slidewindow_len = 5
-    time_offset = 5
-    page_time_offset = time_offset + slidewindow_len/2
-    step = .25
-    total_steps = time_offset/step
-    # lists to store results
-    all_res_left, all_res_right = [], []
-    for page in tqdm(all_pages, desc="Calculating features"):
-        page_copy = copy.deepcopy(page)
-        if page.mw_reported:
-            # onset
-            mid_point = page.mw_onset
-            b_time = mid_point - page.time_start
-            backward_steps = min(total_steps, int((b_time-slidewindow_len)/step))
+    # Compute backward and forward steps
+    b_time = mid_point - page.time_start
+    backward_steps = min(total_steps, int((b_time - slidewindow_len) / step))
 
-            f_time = page.time_end - mid_point
-            forward_steps = min(total_steps, int((f_time-slidewindow_len)/step))
+    f_time = page.time_end - mid_point
+    forward_steps = min(total_steps, int((f_time - slidewindow_len) / step))
 
-            left = mid_point - backward_steps*step - slidewindow_len/2
-            right = mid_point + forward_steps*step - slidewindow_len/2
-            for win_start in np.arange(left, right+step, step):
-                page_copy.win_start = win_start
-                page_copy.win_end = win_start + slidewindow_len
-                relative_time = win_start - (mid_point - slidewindow_len/2)
+    left = mid_point - backward_steps * step - slidewindow_len / 2
+    right = mid_point + forward_steps * step - slidewindow_len / 2
 
-                res_left, res_right = None, None
-                # calculate eye features with defined time window
-                res_left, res_right = calculate_all_features(page_copy)
-                
-                # save current page results
-                if res_left is not None:
-                    # fill in other information (i.e. page, time info etc)
-                    fill_dict(res_left, page_copy, verbose=False)
-                    res_left['relative_time'] = relative_time
-                    res_left['label'] = 'MW_onset'
-                    # append the res dict to list
-                    all_res_left.append(res_left)
-                
-                if res_right is not None:
-                    fill_dict(res_right, page_copy, verbose=False)
-                    res_right['relative_time'] = relative_time
-                    res_left['label'] = 'MW_onset'
-                    all_res_right.append(res_right)
-            
+    # Iterate over sliding window steps
+    for win_start in np.arange(left, right + step, step):
+        page_copy.win_start = win_start
+        page_copy.win_end = win_start + slidewindow_len
+        relative_time = win_start - (mid_point - slidewindow_len / 2)
 
-            # self-report
-            mid_point = page.time_end - slidewindow_len/2
-            b_time = mid_point - page.time_start
-            backward_steps = min(total_steps, int((b_time-slidewindow_len)/step))
+        res_left, res_right = calculate_all_features(page_copy)
 
-            f_time = page.time_end - mid_point
-            forward_steps = min(total_steps, int((f_time-slidewindow_len)/step))
+        # Store left eye results
+        if res_left is not None:
+            fill_dict(res_left, page_copy, verbose=False)
+            res_left['relative_time'] = relative_time
+            res_left['label'] = label
+            all_res_left.append(res_left)
 
-            left = mid_point - backward_steps*step - slidewindow_len/2
-            right = mid_point + forward_steps*step - slidewindow_len/2
-            for win_start in np.arange(left, right+step, step):
-                page_copy.win_start = win_start
-                page_copy.win_end = win_start + slidewindow_len
-                relative_time = win_start - (mid_point - slidewindow_len/2)
-
-                res_left, res_right = None, None
-                # calculate eye features with defined time window
-                res_left, res_right = calculate_all_features(page_copy)
-                
-                # save current page results
-                if res_left is not None:
-                    # fill in other information (i.e. page, time info etc)
-                    fill_dict(res_left, page_copy, verbose=False)
-                    res_left['relative_time'] = relative_time
-                    res_left['label'] = 'self_report'
-                    # append the res dict to list
-                    all_res_left.append(res_left)
-                
-                if res_right is not None:
-                    fill_dict(res_right, page_copy, verbose=False)
-                    res_right['relative_time'] = relative_time
-                    res_left['label'] = 'self_report'
-                    all_res_right.append(res_right)
-    
-
-        else:
-            mid_point = random.uniform(page.time_start+page_time_offset, page.time_end-page_time_offset)
-            left = mid_point - time_offset - slidewindow_len/2
-            right = mid_point + time_offset - slidewindow_len/2
-            for win_start in np.arange(left, right+step, step):
-                page_copy.win_start = win_start
-                page_copy.win_end = win_start + slidewindow_len
-                relative_time = win_start - (mid_point - slidewindow_len/2)
-
-                res_left, res_right = None, None
-                # calculate eye features with defined time window
-                res_left, res_right = calculate_all_features(page_copy)
-                
-                # save current page results
-                if res_left is not None:
-                    # fill in other information (i.e. page, time info etc)
-                    fill_dict(res_left, page_copy, verbose=False)
-                    res_left['relative_time'] = relative_time
-                    res_left['label'] = 'control'
-                    # append the res dict to list
-                    all_res_left.append(res_left)
-                
-                if res_right is not None:
-                    fill_dict(res_right, page_copy, verbose=False)
-                    res_right['relative_time'] = relative_time
-                    res_left['label'] = 'control'
-                    all_res_right.append(res_right)
-
-    # save results
-    df_L, df_R = pd.DataFrame(all_res_left), pd.DataFrame(all_res_right)
-    # modify dataframe
-    for df in [df_L, df_R]:
-        if not df.empty:
-            # normalize some features to avoid individual differences
-            df['norm_pupil'] = df['mean_pupil'] / df['mean_pupil'].mean()
-         
-    # Save concatenated results
-    if not df_L.empty:
-        df_L.to_csv(f'{sub_folder}/s{sub_id}_L_features_slide.csv')
-        print('Saved Data for left Eye.')
-
-    if not df_R.empty:
-        df_R.to_csv(f'{sub_folder}/s{sub_id}_R_features_slide.csv')
-        print('Saved Data for right Eye.')
-
-
-
-def save_page_data_to_dict(eye_dict, page, run, reading_convert, win_type):
-    '''
-    This is a helper function to call analyses funcs and save eye features 
-    in page object to a dict. 
-
-    Parameters
-    ----------
-    eye_dict : dict
-        DESCRIPTION. a reference of eye_feature_dict, which is a dict of eye
-            features and sample labels that are saved in the .csv file. 
-    page : object
-        DESCRIPTION. See page.py for more details. 
-    run : int
-        DESCRIPTION. the run/session index number extracted from input file
-    reading_convert : dict
-        DESCRIPTION. a dict of reading names.
-    win_type : str or np.nan
-        DESCRIPTION. a sample label
-
-    Returns
-    -------
-    None. But the input eye_dict gets modified so that it stores the 
-    information of the current page object
-
-    '''
-    
-    # calculate eye features
-    page.calculate_features()
-    if page.num_fixations > 0:
-        page.regressions_in_word()
-        page.normalize_data()
-    
-    # add data to table (this is a dict that will be saved as a csv)
-    eye_dict['run'].append(run)
-    eye_dict['reading'].append(reading_convert[page.reading])
-    eye_dict['page_num'].append(page.page_number) 
-    eye_dict['num_blinks'].append(page.num_blinks) 
-    eye_dict['num_fixations'].append(page.num_fixations)
-    eye_dict['num_saccades'].append(page.num_saccades)
-    eye_dict['mean_pupil_size'].append(page.pupil_mean)
-    eye_dict['norm_pupil_size'].append(np.nan)
-    eye_dict['pupil_slope'].append(page.pupil_slope)
-    eye_dict['mean_blink_duration'].append(page.mean_blink_duration)
-    eye_dict['norm_blink_freq'].append(page.norm_blink_freq)
-    eye_dict['norm_num_word_fix'].append(page.norm_num_word_fix)
-    eye_dict['norm_saccade_count'].append(page.norm_saccade_count)
-    eye_dict['norm_in_word_regression'].append(page.norm_in_word_regression)
-    eye_dict['norm_out_word_regression'].append(page.norm_out_word_regression)
-    eye_dict['zipf_duration_correlation'].append(page.zipf_duration_correlation)
-    eye_dict['word_length_duration_correlation'].append(page.word_length_duration_correlation)
-    eye_dict['norm_total_viewing'].append(page.norm_total_viewing)
-    eye_dict['reported_MW'].append(int(page.mw_reported))
-    eye_dict['valid_MW'].append(int(page.valid_mw))
-    eye_dict['task_start'].append(page.task_start)
-    eye_dict['win_start'].append(page.mw_onset)
-    eye_dict['win_end'].append(page.mw_offset)
-    eye_dict['win_duration'].append(page.duration)
-    eye_dict['win_type'].append(win_type)
-    eye_dict['page_start'].append(page.time_start)
-    eye_dict['page_end'].append(page.time_end)
-
-
-def extract_feature_whole(eye_feature_dict_whole, page, run, reading_convert):
-    '''
-    This function saves analyzed eye features over the whole period into the 
-    dict. For normal reading sample, the time window is the whole reading page.
-    For mindless reading sample, the time window is the whole reported MW 
-    window. Note that reported but invalid (i.e. duration < 5s) samples do not
-    get assigned win_type (i.e. win_type = np.nan).
-    
-     ________________________
-    |_______NR sample_______|
-     ________________________  ________________
-    |_______________________|||___MR sample___|
-                             |
-                           mw onset
-
-    Parameters
-    ----------
-    eye_feature_dict_whole : dict
-        DESCRIPTION. a reference of a deepcopy of eye_feature_dict, which is 
-        a dict of eye features and sample labels that are saved in the .csv file. 
-    page : object
-        DESCRIPTION. See page.py for more details. 
-    run : int
-        DESCRIPTION. the run/session index number extracted from input file
-    reading_convert : dict
-        DESCRIPTION. a dict of reading names.
-
-    Returns
-    -------
-    None. But the eye_feature_dict_whole dict gets modified so that it stores
-    the informatino of the current page object
-
-    '''
-    # assign win_type to the current sample
-    # NR: normal reading; no reported MW
-    # MR: mindless reading; reported MW and valid MW
-    # nan: reported MR but invalid MW
-    if page.mw_reported:
-        page.win_type = -1
-        if page.valid_mw:
-            win_type = 'MR'
-        else:
-            win_type = np.nan
-    else:
-        win_type = 'NR'
-    
-    # add data to table (this is a dict that will be saved as a csv)
-    save_page_data_to_dict(eye_feature_dict_whole, page, run, 
-                           reading_convert, win_type)
-    
-
-def extract_feature_same(eye_feature_dict_same, page, run, reading_convert, 
-                         time_offset=2):
-    '''
-    This function saves analyzed eye features over the same period into the 
-    dict. For normal reading sample, the time window is just before the 
-    reported mind-wandering onset. For mindless reading sample, the time 
-    window is the normal reported MW window. NR and MR are modifeid so that
-    they have the same duration. Note that normal reading page and reported but 
-    invalid (i.e. duration < 5s) samples do not get assigned win_type 
-    (i.e. win_type = np.nan).
-     ________________                                ________________
-    |___NR sample___|__time offset__|__time offset__|___MR sample___|
-                                    |
-                                 mw onset
-
-    Parameters
-    ----------
-    eye_feature_dict_same : dict
-        DESCRIPTION. a reference of a deepcopy of eye_feature_dict, which is 
-        a dict of eye features and sample labels that are saved in the .csv file. 
-    page : object
-        DESCRIPTION. See page.py for more details. 
-    run : int
-        DESCRIPTION. the run/session index number extracted from input file
-    reading_convert : dict
-        DESCRIPTION. a dict of reading names.
-    time_offset : int, optional
-        DESCRIPTION. the offset between NR and MR time windows in seconds. 
-            The default is 2.
-
-    Returns
-    -------
-    None. But the eye_feature_dict_same dict gets modified so that it stores
-    the informatino of the current page object
-
-    '''
-    # for page with valid reported MW
-    if page.valid_mw:
-        # create sample for mindless reading
-        win_type = 'MR'
-        page.win_type = -1
-        # subtract time_offset from the onset of MW
-        page.mw_onset += time_offset
-        # if NR time window is shorter than MR
-        # truncate the MR window time to keep them the same duration
-        MR_duration = page.mw_offset-page.mw_onset
-        NR_duration = page.mw_onset-page.time_start-time_offset*2
-        if MR_duration > NR_duration:
-            page.mw_offset = page.mw_onset + NR_duration
-        # add data to table (this is a dict that will be saved as a csv)
-        save_page_data_to_dict(eye_feature_dict_same, page, run, 
-                               reading_convert, win_type)
-          
-        # create sample for normal reading with the same duration
-        win_type = 'NR'
-        page.win_type = 1
-        page.mw_offset = page.mw_onset-time_offset*2
-        page.mw_onset = np.max((page.time_start,
-                                (page.mw_offset-MR_duration)))
-        # add data to table (this is a dict that will be saved as a csv)
-        save_page_data_to_dict(eye_feature_dict_same, page, run, 
-                               reading_convert, win_type)
-    
-    # for page without valid reported MW
-    else:
-        win_type = np.nan
-        # add data to table (this is a dict that will be saved as a csv)
-        save_page_data_to_dict(eye_feature_dict_same, page, run, 
-                               reading_convert, win_type)
-
-
-def extract_feature_last(eye_feature_dict_last, page, run, reading_convert, 
-                         win_duration=5):
-    '''
-    This function saves analyzed eye features over the last a few seconds on 
-    the page into the dict for both normal and mindless reading. Note that 
-    reported but invalid (i.e. duration < 5s) samples do not get assigned 
-    win_type (i.e. win_type = np.nan).
-    
-    dur(NR) = dur(MR) = win_duration
-     ________________                                
-    |___NR sample___|__|
-                       |
-                page end time
-     ________________                                
-    |___MR sample___|__|
-                       |
-                page end time           
-
-    Parameters
-    ----------
-    eye_feature_dict_last : dict
-        DESCRIPTION. a reference of a deepcopy of eye_feature_dict, which is 
-        a dict of eye features and sample labels that are saved in the .csv file. 
-    page : object
-        DESCRIPTION. See page.py for more details. 
-    run : int
-        DESCRIPTION. the run/session index number extracted from input file
-    reading_convert : dict
-        DESCRIPTION. a dict of reading names.
-    win_duration : int, optional
-        DESCRIPTION. the duration of sample time window in seconds. 
-            The default is 5.
-
-    Returns
-    -------
-    None. But the eye_feature_dict_last dict gets modified so that it stores
-    the informatino of the current page object
-
-    '''
-    # declare time offset to account for gaze not on the monitor
-    time_offset = 1
-    
-    # assign win_type to the current sample
-    # NR: normal reading; no reported MW
-    # MR: mindless reading; reported MW and valid MW
-    # nan: reported MR but invalid MW
-    if page.mw_reported:
-        win_type = 'MR'
-        page.win_type = -1
-    else:
-        win_type = 'NR'
-        # set bool to be true so that eye features will be extracted only from
-        # defined time window (i.e. last a few seconds on the page)
-        page.mw_reported = True
-        page.valid_mw = True
-        
-    # create sample over last several seconds on the current page
-    # page.mw_offset = page.time_end - time_offset
-    # page.mw_onset = page.mw_offset - win_duration
-    page.mw_offset = page.time_end - time_offset
-    page.mw_onset = page.time_start
-        
-    # add data to table (this is a dict that will be saved as a csv)
-    save_page_data_to_dict(eye_feature_dict_last, page, run, 
-                           reading_convert, win_type)
-
+        # Store right eye results
+        if res_right is not None:
+            fill_dict(res_right, page_copy, verbose=False)
+            res_right['relative_time'] = relative_time
+            res_right['label'] = label
+            all_res_right.append(res_right)
 
                 
 

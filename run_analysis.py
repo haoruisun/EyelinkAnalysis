@@ -11,19 +11,17 @@ import src.extract_eye_features as ef
 
 def main(sub_id='all', win_type='default'):
     data_path='../../../Data/'
+    # Get list of subject folders or create single subject folder path
     if sub_id == 'all':
-        if win_type == 'slide':
-            # get all subject folders in the root path
-            subject_folders = glob.glob(f'{data_path}s[0-9]*')
-            # loop through individual subject
-            for sub_folder in subject_folders:
-                ef.extract_subject_features_slide(sub_folder)
-            return
-    if sub_id == 'all':
-        ef.extract_group_features(data_path=data_path,win_type=win_type)
+        # get all subject folders in the root path
+        subject_folders = glob.glob(f'{data_path}s[0-9]*')
     else:
-        sub_folder = f'{data_path}/s{sub_id}'
+        subject_folders = [f'{data_path}/s{sub_id}']
+        
+    # loop through individual subject
+    for sub_folder in subject_folders:
         ef.extract_subject_features(sub_folder, win_type)
+
     return
 
 

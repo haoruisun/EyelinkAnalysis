@@ -62,8 +62,7 @@ class Page():
         # dataframe adapted from saved fixation csv file
         # Columns: 
         # tStart, tEnd (miliseconds), duration, xAvg, yAvg, pupilAvg, fixed_word, fixed_word_index, zipf
-        self.dfFix = None 
-        self.dfAllFix = None
+        self.dfFix = None
         
         # dataframe adapted from saved blink csv file
         # Columns: 
@@ -80,7 +79,6 @@ class Page():
         # Columns: 
         # tSample, LX, LY, LPupil, RX, RY, RPupil
         self.dfSamples = None
-
         self.parse_file_location(imageLocation)
         
 
@@ -109,12 +107,12 @@ class Page():
         
     
     def assign_data(self, dfFix, dfBlink, dfSacc, dfSamples):
+        dfSamples, dfFix, dfSacc, dfBlink = truncate_df_by_time(dfSamples, dfFix, dfSacc, dfBlink, 
+                                                                self.time_start, self.time_end)
         self.dfFix = dfFix
         self.dfBlink = dfBlink
         self.dfSacc = dfSacc
         self.dfSamples = dfSamples
-        truncate_df_by_time(self, self.time_start, self.time_end)
-        self.dfAllFix = self.dfFix.copy()
 
 
     def load_word(self, task_path='../../MindlessReading/Reading', zipf_dict=None):

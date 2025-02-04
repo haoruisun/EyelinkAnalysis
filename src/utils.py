@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d, CubicSpline
 
-def truncate_df_by_time(page, win_start, win_end):
+def truncate_df_by_time(dfSamples, dfFix, dfSacc, dfBlink, win_start, win_end):
     # TODO
     '''
     _summary_
@@ -30,28 +30,26 @@ def truncate_df_by_time(page, win_start, win_end):
     '''    
 
     # blinks
-    dfBlink = page.dfBlink
     blink_indices = (dfBlink['tStart'] >= win_start*1000) & \
                     (dfBlink['tEnd'] <= win_end*1000)
-    page.dfBlink = dfBlink.loc[blink_indices].copy()
+    dfBlink = dfBlink.loc[blink_indices].copy()
 
     # fixatoins
-    dfFix = page.dfFix
     fix_indices = (dfFix['tStart'] >= win_start*1000) & \
                     (dfFix['tEnd'] <= win_end*1000)
-    page.dfFix = dfFix.loc[fix_indices].copy()
+    dfFix = dfFix.loc[fix_indices].copy()
 
     # saccades
-    dfSacc = page.dfSacc
     sacc_indices = (dfSacc['tStart'] >= win_start*1000) & \
                     (dfSacc['tEnd'] <= win_end*1000)
-    page.dfSacc = dfSacc.loc[sacc_indices].copy()
+    dfSacc = dfSacc.loc[sacc_indices].copy()
     
     # eye samples (pupil info)
-    dfSamples = page.dfSamples
     pupil_indices = (dfSamples['tSample'] >= win_start*1000) & \
                     (dfSamples['tSample'] <= win_end*1000)
-    page.dfSamples = dfSamples.loc[pupil_indices].copy()
+    dfSamples = dfSamples.loc[pupil_indices].copy()
+
+    return dfSamples, dfFix, dfSacc, dfBlink
 
 
 

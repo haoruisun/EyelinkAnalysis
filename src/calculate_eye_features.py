@@ -31,8 +31,6 @@ def calculate_all_features(page):
     elif (page.win_start is None) or (page.win_end is None):
         raise ValueError('Win start/end time is None!')
     
-    # truncate dataframes in the page object for calcuation
-    truncate_df_by_time(page, page.win_start, page.win_end)
     page.win_dur = page.win_end - page.win_start
     # calculate single eye feature
     res_left = calculate_single_eye(page, 'L')
@@ -52,8 +50,10 @@ def calculate_single_eye(page, eye):
     Returns:
         _type_: _description_
     '''    
-    # check mono or bino recording mode
-    dfSamples = page.dfSamples
+    # truncate dataframes in the page object for calcuation
+    dfSamples, dfFix, dfSacc, dfBlink = truncate_df_by_time(page.dfSamples, page.dfFix, page.dfSacc, page.dfBlink, 
+                                                            page.win_start, page.win_end)
+    
     # Calculate the number of empty rows in the specified column
     empty_rows = dfSamples[f'{eye}Pupil'].isnull().sum()
     # Check if empty rows in the column exceed one-tenth of the total rows
@@ -67,7 +67,6 @@ def calculate_single_eye(page, eye):
     res['eye'] = eye
 
     # Fixation related features
-    dfFix = page.dfFix
     dfFixL = dfFix[dfFix['eye']=='L']
     dfFixR = dfFix[dfFix['eye']=='R']
     dfFix = dfFix[dfFix['eye']==eye]
@@ -108,7 +107,6 @@ def calculate_single_eye(page, eye):
 
     
     # Blink related features
-    dfBlink = page.dfBlink
     dfBlink = dfBlink[dfBlink['eye']==eye]
     # number of blinks
     blink_num = len(dfBlink)
@@ -126,7 +124,6 @@ def calculate_single_eye(page, eye):
 
 
     # Saccade related features
-    dfSacc = page.dfSacc
     dfSacc = dfSacc[dfSacc['eye']==eye]
     # number of saccades
     sacc_num = len(dfSacc)
@@ -147,7 +144,6 @@ def calculate_single_eye(page, eye):
 
 
     # Pupil (Samples) related features
-    dfSamples = page.dfSamples
     pupil = dfSamples[f'{eye}Pupil']
     # check dataframe size
     if len(pupil) < 2:
