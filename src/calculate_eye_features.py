@@ -27,9 +27,11 @@ def calculate_all_features(page):
     '''    
     # check input start and end time are valid
     if page.win_start >= page.win_end:
-        raise ValueError('Window start time cannot be later than end time!')
+        print('Window start time cannot be later than end time!')
+        return None, None
     elif (page.win_start is None) or (page.win_end is None):
-        raise ValueError('Win start/end time is None!')
+        print('Window start/end time is None!')
+        return None, None
     
     page.win_dur = page.win_end - page.win_start
     # calculate single eye feature
@@ -72,29 +74,31 @@ def calculate_single_eye(page, eye):
     dfFix = dfFix[dfFix['eye']==eye]
     # number of fixations
     fix_num = len(dfFix)
-    # number of fixations on word
-    fix_word_num = np.sum(dfFix['word_len'] > 0)
-    norm_fix_word_num = fix_word_num / page.win_dur if fix_word_num > 0 else np.nan
+    # Initialize all features as NaN
+    fix_word_num, norm_fix_word_num = np.nan, np.nan
+    in_word_reg, out_word_reg = np.nan, np.nan
+    zipf_fixdur_corr, wordlength_fixdur_corr = np.nan, np.nan
+    fix_dispersion = np.nan
+    weighted_vergence = np.nan
+    norm_total_viewing = np.nan
+
+    # for at least 1 fixation sample
+    if fix_num > 0:
+        # number of fixations on word
+        fix_word_num = np.sum(dfFix['word_len'] > 0)
+        norm_fix_word_num = fix_word_num / page.win_dur if fix_word_num > 0 else np.nan
+        norm_total_viewing = calculate_total_viewing(dfFix)
 
     # for at least 2 fixation samples
     if fix_num > 1:
-        # call functions to calculate other features
+        # Compute additional features if multiple fixations exist
         in_word_reg, out_word_reg = calculate_word_regression(dfFix)
         zipf_fixdur_corr, wordlength_fixdur_corr = calculate_word_fix_corr(dfFix)
-        norm_total_viewing = calculate_total_viewing(dfFix)
         fix_dispersion = calculate_fix_dispersion(dfFix)
         weighted_vergence = calculate_vergence(dfFixL, dfFixR)
-    # otherwise, assign np.nan to those variables
-    else:
-        fix_num = np.nan
-        in_word_reg, out_word_reg = np.nan, np.nan
-        zipf_fixdur_corr, wordlength_fixdur_corr = np.nan, np.nan
-        fix_dispersion = np.nan
-        weighted_vergence = np.nan
-        norm_total_viewing = np.nan
 
     # save to results dict
-    res['fix_num'] = fix_num
+    res['fix_num'] = fix_num if fix_num > 0 else np.nan
     res['fix_word_num'] = fix_word_num
     res['norm_fix_word_num'] = norm_fix_word_num
     res['norm_in_word_reg'] = in_word_reg

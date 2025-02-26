@@ -31,7 +31,7 @@ class Page():
         self.task_start = np.nan
         # is MW reported. By default it is false
         self.mw_reported = False
-        # reported mind-wandering onset and offset
+        # reported mind-wandering onset and offset in seconds
         self.mw_onset = np.nan
         self.mw_offset = np.nan
         self.mw_dur = np.nan

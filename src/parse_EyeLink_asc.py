@@ -65,10 +65,10 @@ def parse_EyeLinkAsc(elFilename):
     # Trials
     print('Parsing recording markers...')
     iNotStart = np.nonzero(lineType!='START')[0]
-    dfRecStart = pd.read_csv(elFilename,skiprows=iNotStart,header=None,delim_whitespace=True,usecols=[1])
+    dfRecStart = pd.read_csv(elFilename,skiprows=iNotStart,header=None,sep=r'\s+',usecols=[1])
     dfRecStart.columns = ['tStart']
     iNotEnd = np.nonzero(lineType!='END')[0]
-    dfRecEnd = pd.read_csv(elFilename,skiprows=iNotEnd,header=None,delim_whitespace=True,usecols=[1,5,6])
+    dfRecEnd = pd.read_csv(elFilename,skiprows=iNotEnd,header=None,sep=r'\s+',usecols=[1,5,6])
     # TODO: Q: what are xRes and yRes values in elFile?
     dfRecEnd.columns = ['tEnd','xRes','yRes']
     # combine trial info
@@ -96,7 +96,7 @@ def parse_EyeLinkAsc(elFilename):
     print('Parsing fixations...')
     t = time.time()
     iNotEfix = np.nonzero(lineType!='EFIX')[0]
-    dfFix = pd.read_csv(elFilename,skiprows=iNotEfix,header=None,delim_whitespace=True,usecols=range(1,8))
+    dfFix = pd.read_csv(elFilename,skiprows=iNotEfix,header=None,sep=r'\s+',usecols=range(1,8))
     dfFix.columns = ['eye','tStart','tEnd','duration','xAvg','yAvg','pupilAvg']
     nFix = dfFix.shape[0]
 
@@ -104,13 +104,13 @@ def parse_EyeLinkAsc(elFilename):
     print('Parsing saccades...')
     t = time.time()
     iNotEsacc = np.nonzero(lineType!='ESACC')[0]
-    dfSacc = pd.read_csv(elFilename,skiprows=iNotEsacc,header=None,delim_whitespace=True,usecols=range(1,11))
+    dfSacc = pd.read_csv(elFilename,skiprows=iNotEsacc,header=None,sep=r'\s+',usecols=range(1,11))
     dfSacc.columns = ['eye','tStart','tEnd','duration','xStart','yStart','xEnd','yEnd','ampDeg','vPeak']
 
     # Blinks
     print('Parsing blinks...')
     iNotEblink = np.nonzero(lineType!='EBLINK')[0]
-    dfBlink = pd.read_csv(elFilename,skiprows=iNotEblink,header=None,delim_whitespace=True,usecols=range(1,5))
+    dfBlink = pd.read_csv(elFilename,skiprows=iNotEblink,header=None,sep=r'\s+',usecols=range(1,5))
     dfBlink.columns = ['eye','tStart','tEnd','duration']
     # print('Done! Took %f seconds.'%(time.time()-t))
 
@@ -127,8 +127,7 @@ def parse_EyeLinkAsc(elFilename):
     print('Parsing samples...')
     t = time.time()
     iNotSample = np.nonzero(np.logical_or(lineType!='SAMPLE', np.arange(nLines)<iStartRec))[0]
-    dfSamples = pd.read_csv(elFilename,skiprows=iNotSample,header=None,delim_whitespace=True,
-                            usecols=range(0,len(cols)))
+    dfSamples = pd.read_csv(elFilename,skiprows=iNotSample,header=None,sep=r'\s+',usecols=range(0,len(cols)))
     dfSamples.columns = cols
     # Convert values to numbers
     for eye in ['L','R']:

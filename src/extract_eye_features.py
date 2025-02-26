@@ -24,7 +24,6 @@ import glob
 import copy
 import pickle
 import random
-import warnings
 import numpy as np
 import pandas as pd   
 from tqdm import tqdm
@@ -80,7 +79,7 @@ def extract_subject_features(sub_folder, win_type, is_plot=False):
     print('====================================================================')
 
     # load pages
-    overwrite_page = True
+    overwrite_page = False
     all_pages = load_pages(sub_folder, overwrite_page)
     
     # for sliding window
@@ -101,13 +100,22 @@ def extract_subject_features(sub_folder, win_type, is_plot=False):
                 mid_point = page.mw_onset
                 process_sliding_window(page, mid_point, 'MW_onset', slidewindow_len, time_offset, step, all_res_left, all_res_right)
 
+                # Process MW offset
+                mid_point = page.mw_offset
+                process_sliding_window(page, mid_point, 'MW_offset', slidewindow_len, time_offset, step, all_res_left, all_res_right)
+
                 # Process self-report event (offset)
-                mid_point = page.time_end - slidewindow_len / 2
+                mid_point = page.time_end
                 process_sliding_window(page, mid_point, 'self_report', slidewindow_len, time_offset, step, all_res_left, all_res_right)
 
             else:
-                # Generate random mid_point for control case
-                mid_point = random.uniform(page.time_start + page_time_offset, page.time_end - page_time_offset)
+                # Generate random mid_point for control case from fixations
+                fix_start = page.dfFix['tStart'] / 1000  # Convert ms to seconds
+                # Ensure 'fix_start' is within the desired time window
+                fix_start = fix_start[(fix_start > (page.time_start + page_time_offset)) & 
+                                    (fix_start < (page.time_end - page_time_offset))]
+                # Randomly select one fixation start time
+                mid_point = np.random.choice(fix_start) if len(fix_start) > 0 else np.nan
                 process_sliding_window(page, mid_point, 'control', slidewindow_len, time_offset, step, all_res_left, all_res_right)
 
          # Convert results to DataFrames
@@ -139,7 +147,7 @@ def extract_subject_features(sub_folder, win_type, is_plot=False):
         print('Saved Data for R Eye.')
     
     # print finish sentence
-    print('================================= Log =================================')
+    print('=============================== Log ================================')
     print(f'Subject: {sub_id} has been DONE!\n')
 
 
@@ -168,11 +176,13 @@ def load_pages(sub_folder, overwrite_page):
     # Define the directory where page objects are stored
     dir_page = os.path.join(sub_folder, "page")
 
-    # Ensure the page directory exists, and set overwrite flag if newly created
-    if not os.path.exists(dir_page):
+    # Ensure the page directory exists and contains exactly 5 files
+    if not os.path.exists(dir_page) or len(os.listdir(dir_page)) != 5:
         print("Generating page objects...")
-        os.makedirs(dir_page)
+        os.makedirs(dir_page, exist_ok=True)  # Ensure directory exists
         overwrite_page = True
+    else:
+        overwrite_page = False  # No need to overwrite if folder already has 5 files
 
     # List to store all loaded/generated pages
     all_pages = []
@@ -227,7 +237,10 @@ def load_pages(sub_folder, overwrite_page):
         print("Loading precomputed page objects from files...")
         # Get all matching pickle files
         for file in os.listdir(dir_page):
-            file_path = os.path.join(dir_page, file)
+            # Ensure we are matching only valid filenames
+            if not re.match(r"r[1-5]_pages$", file):  # Apply regex to `file`, NOT `file_path`
+                continue
+            file_path = os.path.join(dir_page, file)  # Construct full file path
             with open(file_path, "rb") as f:
                 pages = pickle.load(f)  # Assuming each file contains a list of pages
             all_pages += pages
@@ -236,16 +249,26 @@ def load_pages(sub_folder, overwrite_page):
 
 
 def process_data2pages(eye_file_path, psy_file_path):
-    '''
-    _summary_
+    """
+    Processes eye-tracking and behavioral data into page objects.
 
-    Args:
-        eye_file_path (_type_): _description_
-        psy_file_path (_type_): _description_
+    This function extracts eye-tracking data from an `.asc` file, loads behavioral
+    data from a PsychoPy file, and generates page objects with assigned fixation 
+    and blink data. It also matches fixations to words and computes mind-wandering 
+    (MW) onset and offset.
 
-    Returns:
-        _type_: _description_
-    '''    
+    Parameters
+    ----------
+    eye_file_path : str
+        Path to the eye-tracking `.asc` file.
+    psy_file_path : str
+        Path to the PsychoPy behavioral `.csv` file.
+
+    Returns
+    -------
+    list
+        A list of `Page` objects, each representing a reading page with eye-tracking data.
+    """
     # extract run index from eye file
     run_number = extract_run_index(eye_file_path, '.asc')
     # get the data in pandas dataframe
@@ -365,7 +388,9 @@ def compute_window_time(pages, win_type):
                 pages_nr.append(page)
         
         if len(pages_mw) == 0:
-            raise ValueError('No mind-wandering instances are found!\nThrow out this subject from analysis')
+            #raise ValueError('No mind-wandering instances are found!\nThrow out this subject from analysis')
+            print('No mind-wandering instances are found!\nThrow out this subject from analysis')
+            return []
 
         # Sort pages for pairing
         # sort MW pages based on descending order of MW duration
@@ -549,11 +574,11 @@ def process_sliding_window(page, mid_point, label, slidewindow_len, time_offset,
     page_copy = copy.deepcopy(page)
 
     # Compute backward and forward steps
-    b_time = mid_point - page.time_start
-    backward_steps = min(total_steps, int((b_time - slidewindow_len) / step))
+    b_time = (mid_point-slidewindow_len/2) - page.time_start
+    backward_steps = min(total_steps, int(b_time / step))
 
-    f_time = page.time_end - mid_point
-    forward_steps = min(total_steps, int((f_time - slidewindow_len) / step))
+    f_time = page.time_end - (mid_point+slidewindow_len/2)
+    forward_steps = min(total_steps, int(f_time / step))
 
     left = mid_point - backward_steps * step - slidewindow_len / 2
     right = mid_point + forward_steps * step - slidewindow_len / 2

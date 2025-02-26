@@ -10,11 +10,12 @@ import argparse
 import src.extract_eye_features as ef
 
 def main(sub_id='all', win_type='default'):
-    data_path='../../../Data/'
+    # data_path = r"E:\MindlessReading\Data"
+    data_path = r"Z:\Mindless Reading\Data"
     # Get list of subject folders or create single subject folder path
     if sub_id == 'all':
         # get all subject folders in the root path
-        subject_folders = glob.glob(f'{data_path}s[0-9]*')
+        subject_folders = glob.glob(f'{data_path}/s[0-9]*')
     else:
         subject_folders = [f'{data_path}/s{sub_id}']
         
